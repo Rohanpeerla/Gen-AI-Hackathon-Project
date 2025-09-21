@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CalmSpace AI Chat</title>
+  <style>
+    body {
+      font-family: "Segoe UI", Tahoma, sans-serif;
+      background: url("https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=1600&q=80") 
+                  no-repeat center center fixed;
+      background-size: cover;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      min-height: 100vh;
+      color: #ecf0f1;
+    }
+    h1 { color: #fff; margin-bottom: 8px; text-shadow: 2px 2px 6px rgba(0,0,0,0.5); font-size: 2.2rem; }
+    .quote { font-style: italic; font-size: 1.1rem; margin-bottom: 20px; color: #f5f5f5; text-shadow: 1px 1px 4px rgba(0,0,0,0.4); }
+
+    #chat-box {
+      width: 100%; max-width: 650px; height: 420px; overflow-y: auto; border-radius: 20px;
+      padding: 15px; background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(12px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.25); margin-bottom: 15px; display: flex; flex-direction: column;
+    }
+
+    .msg { margin: 10px 0; padding: 12px 16px; border-radius: 20px; max-width: 70%; word-wrap: break-word; line-height: 1.4;
+           display: flex; align-items: flex-end; animation: fadeIn 0.4s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px);} to { opacity: 1; transform: translateY(0);} }
+    .user { background: linear-gradient(135deg, #4facfe, #00f2fe); align-self: flex-end; border-bottom-right-radius: 6px; color: #fff;}
+    .ai { background: linear-gradient(135deg, #6a11cb, #2575fc); align-self: flex-start; border-bottom-left-radius: 6px; color: #fff;}
+
+    .avatar { width: 28px; height: 28px; border-radius: 50%; margin-right: 8px; font-size: 18px; display: flex; align-items: center; justify-content: center; background: rgba(255,255,255,0.25);}
+    .msg.ai .avatar { background: #2575fc; }
+    .msg.user .avatar { background: #4facfe; margin-left: 8px; margin-right: 0; }
+
+    .typing { display: flex; align-items: center; gap: 4px; padding: 8px 12px; border-radius: 14px; background: rgba(255, 255, 255, 0.2); color: #fff; align-self: flex-start; }
+    .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; animation: blink 1.4s infinite; }
+    .dot:nth-child(2) { animation-delay: 0.2s; }
+    .dot:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes blink { 0%, 80%, 100% { opacity: 0.2; } 40% { opacity: 1; } }
+
+    #input-box { display: flex; width: 100%; max-width: 650px; }
+    #message { flex: 1; padding: 12px; border-radius: 14px; border: none; background: rgba(0,0,0,0.5); color: #fff; font-size: 15px; }
+    #record-btn, #send-btn, #breath-btn {
+      margin-left: 10px; border: none; border-radius: 14px; cursor: pointer; font-weight: bold;
+      padding: 12px 18px; transition: all 0.2s ease-in-out; color: #fff;
+    }
+    #record-btn { background: linear-gradient(135deg, #f39c12, #e67e22); }
+    #send-btn { background: linear-gradient(135deg, #2575fc, #6a11cb); }
+    #breath-btn { background: linear-gradient(135deg, #00c6ff, #0072ff); }
+
+    #mood-box { margin-bottom: 15px; display: flex; gap: 10px; }
+    .mood-btn { padding: 10px 14px; border-radius: 50%; border: none; cursor: pointer; font-size: 20px; transition: transform 0.2s; }
+    .mood-btn:hover { transform: scale(1.2); }
+    .mood-btn.active { background: rgba(255,255,255,0.3); }
+
+    /* Breathing exercise overlay */
+    #breath-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.85); color: #fff; z-index: 1000; flex-direction: column; justify-content: center; align-items: center;
+    }
+    #breath-circle {
+      width: 120px; height: 120px; border-radius: 50%; background: linear-gradient(135deg,#00c6ff,#0072ff);
+      animation: breathe 8s infinite; margin-bottom: 20px;
+    }
+    @keyframes breathe {
+      0% { transform: scale(1); }
+      25% { transform: scale(1.4); }
+      50% { transform: scale(1.6); }
+      75% { transform: scale(1.4); }
+      100% { transform: scale(1); }
+    }
+    #breath-text { font-size: 1.4rem; margin-bottom: 20px; text-align: center; }
+    #close-breath { padding: 10px 20px; background: #ff7675; border: none; border-radius: 10px; cursor: pointer; color: #fff; }
+  </style>
+</head>
+<body>
+  <h1>🌊 CalmSpace AI Chat</h1>
+  <div class="quote">"Peace comes from within. Do not seek it without." - Buddha</div>
+
+  <div id="mood-box">
+    <button class="mood-btn" data-mood="happy">😊</button>
+    <button class="mood-btn" data-mood="sad">😔</button>
+    <button class="mood-btn" data-mood="angry">😡</button>
+    <button class="mood-btn" data-mood="calm">😌</button>
+  </div>
+
+  <div id="chat-box"></div>
+
+  <div id="input-box">
+    <input type="text" id="message" placeholder="Type your thoughts here..." />
+    <button id="record-btn">🎙️</button>
+    <button id="send-btn">Send</button>
+    <button id="breath-btn">💨</button>
+  </div>
+
+  <!-- Breathing Overlay -->
+  <div id="breath-overlay">
+    <div id="breath-circle"></div>
+    <div id="breath-text">Breathe in...</div>
+    <button id="close-breath">Close</button>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    const messageInput = document.getElementById("message");
+    const sendBtn = document.getElementById("send-btn");
+    const recordBtn = document.getElementById("record-btn");
+    const breathBtn = document.getElementById("breath-btn");
+    const breathOverlay = document.getElementById("breath-overlay");
+    const breathText = document.getElementById("breath-text");
+    const closeBreath = document.getElementById("close-breath");
+
+    // Add message to chat
+    function addMessage(content, type, avatar="") {
+      const msgDiv = document.createElement("div");
+      msgDiv.classList.add("msg", type);
+      if (avatar) {
+        const avatarDiv = document.createElement("div");
+        avatarDiv.classList.add("avatar");
+        avatarDiv.innerText = avatar;
+        if (type === "ai") msgDiv.appendChild(avatarDiv);
+        const textSpan = document.createElement("span");
+        textSpan.innerText = content;
+        msgDiv.appendChild(textSpan);
+        if (type === "user") msgDiv.appendChild(avatarDiv);
+      } else {
+        msgDiv.innerText = content;
+      }
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      // Speak AI replies
+      if (type === "ai" && window.speechSynthesis) {
+        const utterance = new SpeechSynthesisUtterance(content);
+        utterance.lang = "en-US";
+        window.speechSynthesis.speak(utterance);
+      }
+    }
+
+    function showTyping() {
+      const typingDiv = document.createElement("div");
+      typingDiv.classList.add("typing");
+      typingDiv.id = "typing";
+      typingDiv.innerHTML = '<div class="dot"></div><div class="dot"></div><div class="dot"></div>';
+      chatBox.appendChild(typingDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+
+    function removeTyping() {
+      const typingDiv = document.getElementById("typing");
+      if (typingDiv) typingDiv.remove();
+    }
+
+    async function sendMessage(text, mood="") {
+      if (!text && !mood) return;
+      if (text) addMessage(text, "user", "🙂");
+      showTyping();
+      try {
+        const res = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: text, mood: mood })
+        });
+        const data = await res.json();
+        removeTyping();
+        addMessage(data.reply, "ai", "🌿");
+      } catch (err) {
+        removeTyping();
+        addMessage("Error: " + err.message, "ai", "🌿");
+      }
+      messageInput.value = "";
+    }
+
+    // Mood buttons
+    document.querySelectorAll(".mood-btn").forEach(btn => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".mood-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        const mood = btn.dataset.mood;
+        sendMessage("", mood);
+      });
+    });
+
+    // Send text input
+    sendBtn.addEventListener("click", () => sendMessage(messageInput.value.trim(), ""));
+    messageInput.addEventListener("keypress", e => { if (e.key === "Enter") sendMessage(messageInput.value.trim(), ""); });
+
+    // Voice recording (speech recognition)
+    if ('webkitSpeechRecognition' in window) {
+      const recognition = new webkitSpeechRecognition();
+      recognition.continuous = false;
+      recognition.interimResults = false;
+      recognition.lang = "en-US";
+
+      recordBtn.addEventListener("click", () => {
+        recognition.start();
+        recordBtn.innerText = "🎙️ Listening...";
+      });
+
+      recognition.onresult = event => {
+        const text = event.results[0][0].transcript;
+        messageInput.value = text;
+        sendMessage(text, "");
+      };
+      recognition.onend = () => {
+        recordBtn.innerText = "🎙️";
+      };
+    } else {
+      recordBtn.disabled = true;
+      recordBtn.innerText = "❌";
+    }
+
+    // Breathing exercise
+    breathBtn.addEventListener("click", () => {
+      breathOverlay.style.display = "flex";
+      let cycle = ["Breathe in...", "Hold...", "Breathe out...", "Hold..."];
+      let idx = 0;
+      setInterval(() => {
+        breathText.innerText = cycle[idx];
+        idx = (idx + 1) % cycle.length;
+      }, 4000);
+    });
+    closeBreath.addEventListener("click", () => {
+      breathOverlay.style.display = "none";
+    });
+  </script>
+</body>
+</html>
